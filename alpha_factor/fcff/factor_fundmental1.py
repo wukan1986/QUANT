@@ -17,19 +17,19 @@ import time as dt
 class factorGet(object):
     def __init__(self, sql, cal_mode, flag, factor_filename, fre_shift=0, date=None, fre='month'):
         # database information
-        # self.DB_HOST = '10.180.10.139:1521/WINDB'
-        # self.DB_USER = 'rwind'
-        # self.DB_PASSWORD = 'rwind'
-        self.DB_HOST = '10.180.10.179:1521/GOGODB'
-        self.DB_USER = 'ctquant2'
-        self.DB_PASSWORD = 'ctquant2'
+        self.DB_HOST = '10.180.10.139:1521/WINDB'
+        self.DB_USER = 'rwind'
+        self.DB_PASSWORD = 'rwind'
+        #        self.DB_HOST = '10.180.10.179:1521/GOGODB'
+        #        self.DB_USER = 'ctquant2'
+        #        self.DB_PASSWORD = 'ctquant2'
 
         self.sql = sql
         self.flag = flag  # 0 回测 1更新
 
         #  4种模式 current最新的一个季度的值  latest yeartoday  ttm最近四季度之和  year_ave  四季度平均值 用于总资产这种数据计算过去12个月平均值
         self.cal_mode = cal_mode
-        self.fre_shift = fre_shift
+        self.fre_shift = fre_shift  ##
 
         self.dirpath = 'raw_data'  # 新建data文件夹 存各种因子数据
         self.factor_filename = factor_filename  # data文件夹里 具体因子的文件夹
@@ -40,7 +40,7 @@ class factorGet(object):
             self.today = strftime("%Y%m%d", localtime())
         else:
             self.today = date
-        self.initial = '20061201'
+        self.initial = '20050101'
         if fre == 'day':
             self.trade_day = self.wind_trade_day()
         elif fre == 'month':
@@ -54,7 +54,7 @@ class factorGet(object):
             os.mkdir('%s' % (self.factor_path))
 
     def wind_trade_day(self):
-        sql = "select TRADE_DAYS from ASHARECALENDAR where (S_INFO_EXCHMARKET='SZSE') and (TRADE_DAYS>=%s) and (TRADE_DAYS<=%s)" % (
+        sql = "select TRADE_DAYS from WIND.ASHARECALENDAR where (S_INFO_EXCHMARKET='SZSE') and (TRADE_DAYS>=%s) and (TRADE_DAYS<=%s)" % (
             self.initial, self.today)
         trade_day = self.db_query(sql)
         trade_day = trade_day['TRADE_DAYS'].sort_values()
@@ -79,10 +79,14 @@ class factorGet(object):
         db.close()
         return data
 
-    def db_clean(self, data):
+    def db_clean1(self, data):
         reprot_type = ['408001000', '408004000', '408005000']
         data = data[data.STATEMENT_TYPE.isin(reprot_type)]
         data.sort_values(['WIND_CODE', 'REPORT_PERIOD', 'ANN_DT', 'STATEMENT_TYPE'], inplace=True)
+        return data
+
+    def db_clean(self, data):
+        data.sort_values(['WIND_CODE', 'REPORT_PERIOD', 'ANN_DT'], inplace=True)
         return data
 
     def cal_current_latest_ttm(self, df_tmp1, s_name):
@@ -232,19 +236,17 @@ class factorGet(object):
         s_time = time()
 
         ttm_list = []
-        df = df.groupby(['WIND_CODE', 'REPORT_PERIOD']).apply(lambda x: x.iloc[-1])
-        df.index = df['REPORT_PERIOD'].values.tolist()
-
         for i in range(len(code)):
             print('%s  : %s/%s' % (today, i, len(code)))
-            df_tmp1 = df[df['WIND_CODE'] == code[i]]
-
+            df_tmp = df[df['WIND_CODE'] == code[i]]
             ###   groupby 效率十分低  程序的时间主要在这一步
             '''
             groupby 加速的方法 转成numpy  之后参考alpha-mind
             https://github.com/wegamekinglc/alpha-mind/blob/master/alphamind/data/standardize.py
             '''
-            # df_tmp1 = df_tmp.groupby(['REPORT_PERIOD']).apply(lambda x: x.iloc[-1])
+            #            df_tmp1 = df_tmp.groupby(['REPORT_PERIOD']).apply(lambda x: x.iloc[-1])
+            df_tmp1 = df_tmp.copy()
+            df_tmp1.index = df_tmp['REPORT_PERIOD'].values.tolist()
 
             indicator_ttm = self.cal_current_latest_ttm(df_tmp1, s_name)
             ####
@@ -277,16 +279,13 @@ class factorGet(object):
 
 
 if __name__ == "__main__":
-    sql = "select WIND_CODE,ANN_DT,REPORT_PERIOD,STATEMENT_TYPE,net_profit_incl_min_int_inc from ashareincome"
-    factor_filename = 'net_income'
+    #    sql = "select WIND_CODE,ANN_DT,REPORT_PERIOD,STATEMENT_TYPE,net_profit_incl_min_int_inc from ashareincome"
+    sql = "select WIND_CODE,ANN_DT,REPORT_PERIOD,s_fa_fcff from AShareFinancialIndicator"
+    # sql = "select WIND_CODE,ANN_DT,REPORT_PERIOD,STATEMENT_TYPE,FREE_CASH_FLOW from AShareCashFlow"
+
+    factor_filename = 'FCFF'
 
     cal_mode, flag = 'ttm', 1
-
-    # sql = "select WIND_CODE,ANN_DT,REPORT_PERIOD,STATEMENT_TYPE,tot_assets from AShareBalanceSheet"
-    #
-    # factor_filename = 'tot_asset'
-    #
-    # cal_mode, flag = 'year_ave', 1  # 0 回测 1更新
 
     net_income = factorGet(sql, cal_mode, flag, factor_filename)
 

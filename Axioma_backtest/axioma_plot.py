@@ -5,13 +5,14 @@ Created on Fri Oct 13 10:31:12 2017
 @author: shiyunchao
 """
 
-import pandas as pd
 from datetime import datetime
-import numpy as np
+
+import matplotlib
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 from matplotlib.backends.backend_pdf import PdfPages
 from pandas.plotting import table
-import matplotlib
 
 matplotlib.style.use('ggplot')
 # import seaborn as sns
@@ -141,7 +142,7 @@ for factor_name in factor:
         ret_Y, maxdrawdown, span, ir, sharpe, win_ratio, p2l_ratio = indicator(df_ret_nan[col])
         df.loc[col] = [ret_Y, maxdrawdown, span, ir, sharpe, win_ratio, p2l_ratio]
 
-    #    df.to_csv('indicator.csv')
+    # df.to_csv('indicator.csv')
 
     df_ret = df_ret.reset_index()
     df_ret['Period'] = pd.to_datetime(df_ret['Period'], format='%Y%m%d')
