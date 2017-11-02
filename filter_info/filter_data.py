@@ -15,10 +15,10 @@ from tools import client_db, get_tradeDay
 reload(sys)
 
 
-start = '20060101'
+start = '20100501'
 end = strftime("%Y%m%d",localtime())
 
-dirpath = 'data'
+dirpath = 'code_exclude'
 
 update = False
 #sql = "select TRADE_DT,S_INFO_WINDCODE,S_DQ_TRADESTATUS from ASHAREEODPRICES where TRADE_DT>=%s and TRADE_DT<=%s"%(start,end)
@@ -35,7 +35,7 @@ today = tradeday.iloc[-1]
 day = tradeday[0]
 
 def run(day,dirpath):
-    sql = "select TRADE_DT,S_INFO_WINDCODE,S_DQ_ADJPRECLOSE,S_DQ_ADJHIGH,S_DQ_ADJLOW,S_DQ_TRADESTATUS from ASHAREEODPRICES where TRADE_DT=%s"%(day)
+    sql = "select TRADE_DT,substr(S_INFO_WINDCODE,0,instr(S_INFO_WINDCODE,'.')-1),S_DQ_ADJPRECLOSE,S_DQ_ADJHIGH,S_DQ_ADJLOW,S_DQ_TRADESTATUS from ASHAREEODPRICES where TRADE_DT=%s"%(day)
     
     df = getdb.db_query(sql)
     df['S_DQ_TRADESTATUS'] = df['S_DQ_TRADESTATUS'].apply(lambda x: x.decode('gbk'))
@@ -46,38 +46,32 @@ def run(day,dirpath):
     df['dieting'] = df['S_DQ_ADJHIGH']/df['S_DQ_ADJPRECLOSE'] - 1
     df['dieting'] = df['dieting'] <= -9.9/100.0
     
-    df['tingpai'] = df['S_DQ_TRADESTATUS']==u'停牌' 
+    df['tingpai'] = df['S_DQ_TRADESTATUS']!=u'交易'
     
     df1 = df[df['tingpai'] | df['zhangting'] | df['dieting']]
-    
-    df1 = df1[['S_INFO_WINDCODE']]
-    
+
+    df1 = df1[["SUBSTR(S_INFO_WINDCODE,0,INSTR(S_INFO_WINDCODE,'.')-1)"]]
+    df1.columns = ['code']
     df1.to_csv('%s/%s.csv'%(dirpath,day),index=None)
 
-#for day in tradeday:
+# for day in tradeday:
 #    print(day)
 #    run(day,dirpath)
 
-def split(L,s):
-    return [L[i:i+s] for i in range(len(L)) if i%s==0]
-    
+def split(L, s):
+    return [L[i:i + s] for i in range(len(L)) if i % s == 0]
+
 if update:
-    run(today,dirpath)
+    run(today, dirpath)
 else:
-    part_day = split(tradeday.values.tolist(),10)    
-    
+    part_day = split(tradeday.values.tolist(), 10)
+
     for dd in part_day:
-        ls_th =[]
+        ls_th = []
         for day in dd:
-            t = threading.Thread(target=run,args=(day,dirpath))
+            t = threading.Thread(target=run, args=(day, dirpath))
             ls_th.append(t)
         for t in ls_th:
             t.start()
         for t in ls_th:
             t.join()
-
-
-
-
-
-

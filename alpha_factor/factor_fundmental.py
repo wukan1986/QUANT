@@ -110,7 +110,7 @@ class factorGet(object):
 
             indicator_ttm = indicator_current + indicator_last_year - indicator_last_current
         except:
-            indicator_ttm = 'Ne'  ###出现这种情况下 一般就是还没上市 所以财报不全 里面没有 无法索引
+            indicator_ttm = np.nan  ###出现这种情况下 一般就是还没上市 所以财报不全 里面没有 无法索引
         return indicator_ttm
 
     def cal_latest(self, df_tmp1, s_name):
@@ -119,7 +119,7 @@ class factorGet(object):
             type_current = df_tmp1.index.tolist()[-1]
             indicator_latest = df_tmp1.ix[type_current, s_name]
         except:
-            indicator_latest = 'Ne'  ###出现这种情况下 一般就是还没上市 所以财报不全 里面没有 无法索引
+            indicator_latest = np.nan  ###出现这种情况下 一般就是还没上市 所以财报不全 里面没有 无法索引
         return indicator_latest
 
     def convertForcurrnet(self, period):
@@ -145,7 +145,7 @@ class factorGet(object):
             else:
                 indicator_current1 = df_tmp1.ix[type_current, s_name]
         except:
-            indicator_current1 = 'Ne'  ###出现这种情况下 一般就是还没上市 所以财报不全 里面没有 无法索引
+            indicator_current1 = np.nan  ###出现这种情况下 一般就是还没上市 所以财报不全 里面没有 无法索引
         return indicator_current1
 
     def convertForlastest(self, period):
@@ -173,7 +173,7 @@ class factorGet(object):
             indicator_year_average = indicator_year_average / 4.0
 
         except:
-            indicator_year_average = 'Ne'  ###出现这种情况下 一般就是还没上市 所以财报不全 里面没有 无法索引
+            indicator_year_average = np.nan  ###出现这种情况下 一般就是还没上市 所以财报不全 里面没有 无法索引
         return indicator_year_average
 
         #### 添加获取最新一期的财务数据   77 78 start的日期要改掉
@@ -249,16 +249,14 @@ class factorGet(object):
             indicator_ttm = self.cal_current_latest_ttm(df_tmp1, s_name)
             ####
             # 如果当期ttm是缺失值  计算往前一期 往前两期的值作为结果 如果都是nan  
-            if isinstance(indicator_ttm, float) and np.isnan(
-                    indicator_ttm):  ##数据里的nan 都是float64格式的 而np.nan == np.nan 这种方式是无效的
+            if np.isnan(indicator_ttm):  ##数据里的nan 都是float64格式的 而np.nan == np.nan 这种方式是无效的
                 df_tmp1 = df_tmp1.iloc[:-1]
                 indicator_ttm = self.cal_current_latest_ttm(df_tmp1, s_name)
-                if isinstance(indicator_ttm, float) and np.isnan(indicator_ttm):
+                if np.isnan(indicator_ttm):
                     df_tmp1 = df_tmp1.iloc[:-1]
                     indicator_ttm = self.cal_current_latest_ttm(df_tmp1, s_name)
-                else:
-                    indicator_ttm = 'Na'  # (not available)
-
+                    # if isinstance(indicator_ttm, float) and np.isnan(indicator_ttm):
+                    #     indicator_ttm = np.nan  # (not available)
             ttm_list.append(indicator_ttm)
 
         e_time = time()
@@ -291,17 +289,3 @@ if __name__ == "__main__":
     net_income = factorGet(sql, cal_mode, flag, factor_filename)
 
     asd1 = net_income.backtest_or_update()
-
-
-# 要做  文件夹保存
-#
-#
-#
-#
-#
-#
-#
-# all_day['CALENDAR_DATE'] = pd.to_datetime(all_day['CALENDAR_DATE'], format='%Y-%m-%d')
-# all_day = all_day.set_index('CALENDAR_DATE')
-# all_day['t'] = 1
-# all_day1 = all_day.resample('BM', how=lambda x: x.iloc[-1])

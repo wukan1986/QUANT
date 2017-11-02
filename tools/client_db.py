@@ -12,15 +12,19 @@ import os
 #os.environ['NLS_LANG'] = 'SIMPLIFIED CHINESE_CHINA.UTF8'
 
 class read_db():
-    def __init__(self, flag = 'ctquant2'):
-        if flag == 'wind':
+    def __init__(self, type = 'ctquant2'):
+        if type == 'wind':
             self.DB_HOST = '10.180.10.139:1521/WINDB'
             self.DB_USER = 'rwind'
             self.DB_PASSWORD = 'rwind'
-        elif flag == 'ctquant2':
+        elif type == 'ctquant2':
             self.DB_HOST = '10.180.10.179:1521/GOGODB'
             self.DB_USER = 'ctquant2'
             self.DB_PASSWORD = 'ctquant2'
+        elif type == 'gogo':
+            self.DB_HOST = '10.180.10.179:1521/GOGODB'
+            self.DB_USER = 'gogousr'
+            self.DB_PASSWORD = 'gogousr123'
     
     def db_query(self,query):
         db=cx_Oracle.connect(self.DB_USER,self.DB_PASSWORD,self.DB_HOST)
@@ -30,10 +34,15 @@ class read_db():
         
 
 if __name__ == "__main__": 
-    start = '20170801'
-    end = '20171001'
-    sql = "select TRADE_DT,S_INFO_WINDCODE,S_DQ_TRADESTATUS from ASHAREEODPRICES where TRADE_DT>=%s and TRADE_DT<=%s"%(start,end)
+    # start = '20170801'
+    # end = '20171001'
+    # sql = "select TRADE_DT,S_INFO_WINDCODE,S_DQ_TRADESTATUS from ASHAREEODPRICES where TRADE_DT>=%s and TRADE_DT<=%s"%(start,end)
+    #
+    # test = read_db()
+    # df = test.db_query(sql)
 
-    test = read_db()
+    day = '20171031'
+    sql = "select SYMBOL,LTDR from P_GG_KEYDATA where TDATE=%s"%day
+    test = read_db(type = 'gogo')
     df = test.db_query(sql)
     

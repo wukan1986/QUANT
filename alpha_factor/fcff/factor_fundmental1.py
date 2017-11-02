@@ -17,12 +17,12 @@ import time as dt
 class factorGet(object):
     def __init__(self, sql, cal_mode, flag, factor_filename, fre_shift=0, date=None, fre='month'):
         # database information
-        self.DB_HOST = '10.180.10.139:1521/WINDB'
-        self.DB_USER = 'rwind'
-        self.DB_PASSWORD = 'rwind'
-        #        self.DB_HOST = '10.180.10.179:1521/GOGODB'
-        #        self.DB_USER = 'ctquant2'
-        #        self.DB_PASSWORD = 'ctquant2'
+        # self.DB_HOST = '10.180.10.139:1521/WINDB'
+        # self.DB_USER = 'rwind'
+        # self.DB_PASSWORD = 'rwind'
+        self.DB_HOST = '10.180.10.179:1521/GOGODB'
+        self.DB_USER = 'ctquant2'
+        self.DB_PASSWORD = 'ctquant2'
 
         self.sql = sql
         self.flag = flag  # 0 回测 1更新
@@ -40,7 +40,7 @@ class factorGet(object):
             self.today = strftime("%Y%m%d", localtime())
         else:
             self.today = date
-        self.initial = '20050101'
+        self.initial = '20061201'
         if fre == 'day':
             self.trade_day = self.wind_trade_day()
         elif fre == 'month':
@@ -54,7 +54,7 @@ class factorGet(object):
             os.mkdir('%s' % (self.factor_path))
 
     def wind_trade_day(self):
-        sql = "select TRADE_DAYS from WIND.ASHARECALENDAR where (S_INFO_EXCHMARKET='SZSE') and (TRADE_DAYS>=%s) and (TRADE_DAYS<=%s)" % (
+        sql = "select TRADE_DAYS from ASHARECALENDAR where (S_INFO_EXCHMARKET='SZSE') and (TRADE_DAYS>=%s) and (TRADE_DAYS<=%s)" % (
             self.initial, self.today)
         trade_day = self.db_query(sql)
         trade_day = trade_day['TRADE_DAYS'].sort_values()
@@ -114,7 +114,7 @@ class factorGet(object):
 
             indicator_ttm = indicator_current + indicator_last_year - indicator_last_current
         except:
-            indicator_ttm = 'Ne'  ###出现这种情况下 一般就是还没上市 所以财报不全 里面没有 无法索引
+            indicator_ttm = np.nan  ###出现这种情况下 一般就是还没上市 所以财报不全 里面没有 无法索引
         return indicator_ttm
 
     def cal_latest(self, df_tmp1, s_name):
@@ -123,7 +123,7 @@ class factorGet(object):
             type_current = df_tmp1.index.tolist()[-1]
             indicator_latest = df_tmp1.ix[type_current, s_name]
         except:
-            indicator_latest = 'Ne'  ###出现这种情况下 一般就是还没上市 所以财报不全 里面没有 无法索引
+            indicator_latest = np.nan  ###出现这种情况下 一般就是还没上市 所以财报不全 里面没有 无法索引
         return indicator_latest
 
     def convertForcurrnet(self, period):
@@ -149,7 +149,7 @@ class factorGet(object):
             else:
                 indicator_current1 = df_tmp1.ix[type_current, s_name]
         except:
-            indicator_current1 = 'Ne'  ###出现这种情况下 一般就是还没上市 所以财报不全 里面没有 无法索引
+            indicator_current1 = np.nan  ###出现这种情况下 一般就是还没上市 所以财报不全 里面没有 无法索引
         return indicator_current1
 
     def convertForlastest(self, period):
@@ -177,7 +177,7 @@ class factorGet(object):
             indicator_year_average = indicator_year_average / 4.0
 
         except:
-            indicator_year_average = 'Ne'  ###出现这种情况下 一般就是还没上市 所以财报不全 里面没有 无法索引
+            indicator_year_average = np.nan  ###出现这种情况下 一般就是还没上市 所以财报不全 里面没有 无法索引
         return indicator_year_average
 
         #### 添加获取最新一期的财务数据   77 78 start的日期要改掉
@@ -251,16 +251,14 @@ class factorGet(object):
             indicator_ttm = self.cal_current_latest_ttm(df_tmp1, s_name)
             ####
             # 如果当期ttm是缺失值  计算往前一期 往前两期的值作为结果 如果都是nan  
-            if isinstance(indicator_ttm, float) and np.isnan(
-                    indicator_ttm):  ##数据里的nan 都是float64格式的 而np.nan == np.nan 这种方式是无效的
+            if np.isnan(indicator_ttm):  ##数据里的nan 都是float64格式的 而np.nan == np.nan 这种方式是无效的
                 df_tmp1 = df_tmp1.iloc[:-1]
                 indicator_ttm = self.cal_current_latest_ttm(df_tmp1, s_name)
-                if isinstance(indicator_ttm, float) and np.isnan(indicator_ttm):
+                if np.isnan(indicator_ttm):
                     df_tmp1 = df_tmp1.iloc[:-1]
                     indicator_ttm = self.cal_current_latest_ttm(df_tmp1, s_name)
-                else:
-                    indicator_ttm = 'Na'  # (not available)
-
+                    # if np.isnan(indicator_ttm):
+                    #     indicator_ttm = np.nan  # (not available)
             ttm_list.append(indicator_ttm)
 
         e_time = time()
@@ -283,7 +281,7 @@ if __name__ == "__main__":
     sql = "select WIND_CODE,ANN_DT,REPORT_PERIOD,s_fa_fcff from AShareFinancialIndicator"
     # sql = "select WIND_CODE,ANN_DT,REPORT_PERIOD,STATEMENT_TYPE,FREE_CASH_FLOW from AShareCashFlow"
 
-    factor_filename = 'FCFF'
+    factor_filename = 'fcff'
 
     cal_mode, flag = 'ttm', 1
 

@@ -22,9 +22,9 @@ lag: 4
 flag: 1
 
 
-dirpath: E:/QUANT/R_code/output_uqer
-outputpath: E:/QUANT/R_code/report_uqer
-market_path: E:/QUANT/data/Market_uqer
+dirpath: Z:/backtest_data/output_uqer
+outputpath: Z:/backtest_data/report_uqer
+market_path: Z:/backtest_data/close_data/gogo_data
 
 
 Benchmark: HS300

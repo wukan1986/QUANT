@@ -7,7 +7,7 @@ Created on Thu Sep 21 09:34:52 2017
 
 
 import factor_fundmental1
-import factor_fundmental
+from alpha_factor import factor_fundmental
 import pandas as pd
 import numpy as np
 import os
@@ -20,26 +20,26 @@ today = '20170929'  #strftime("%Y%m%d",localtime())
 sql="select WIND_CODE,ANN_DT,REPORT_PERIOD,s_fa_fcff from AShareFinancialIndicator"
 factor_filename1 = 'fcff'
 
-cal_mode1,flag = 'ttm', 1 # 0 回测 1更新
+cal_mode1,flag = 'ttm', 0 # 0 回测 1更新
 
 fre_shift_list = range(6)
 
 for fre_shift in fre_shift_list: 
     net_income = factor_fundmental1.factorGet(sql, cal_mode1,flag,factor_filename1, fre_shift, date = today)
-#    asd1 = net_income.backtest_or_update()
+    # asd1 = net_income.backtest_or_update()
     
 ###############################################################################
 sql = "select WIND_CODE,ANN_DT,REPORT_PERIOD,STATEMENT_TYPE,tot_assets from AShareBalanceSheet"
 
 factor_filename2 = 'tot_asset'
 
-cal_mode2,flag = 'year_ave', 1 # 0 回测 1更新
+cal_mode2,flag = 'year_ave', 0 # 0 回测 1更新
 
 fre_shift = 0
 fre_shift_list = range(6)
 for fre_shift in fre_shift_list: 
     tot_asset = factor_fundmental.factorGet(sql, cal_mode2,flag,factor_filename2, fre_shift, date = today)
-#    asd2 = tot_asset.backtest_or_update()
+    # asd2 = tot_asset.backtest_or_update()
 
 raw_dirpath = 'raw_data'
 
@@ -104,7 +104,7 @@ def updatestd(ii,factor_num,new_dirpath,new_factor_name,new_factor_path2,new_fac
     stdni.reset_index(inplace=True)
     stdni.to_csv('%s/%s_%s.csv'%(new_factor_path2,new_factor_name2,ii),index=None,header=None)
     
-flag = 0    
+
 new_factor_name2 = 'stdfcf0'
 new_factor_path2 = new_dirpath + '/' + new_factor_name2
 
