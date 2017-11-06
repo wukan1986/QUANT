@@ -190,7 +190,7 @@ backtest <- function(factor_name, INPUTPATH_alpha,INPUTPATH_bmk, INPUTPATH_unive
       
       factorExposures <- as.data.frame(dataExposures)
       factorExposures <- as.matrix(factorExposures)
-      factorExposures <- t(factorExposures)
+      # factorExposures <- t(factorExposures)
       
       local_riskmodel <- createFactorRiskModel( ws = ws, id = local_riskmodel_name,
                                                 symbols = axiomaid2, fz = factorNames, sr = dataspecificRisk,
@@ -374,8 +374,8 @@ backtest <- function(factor_name, INPUTPATH_alpha,INPUTPATH_bmk, INPUTPATH_unive
     #
     # 1. Create Scope Aggregate Limit Holdings constraints, which equals net holdings
     if(configfile$budget$use){
-      minNetValue <- 100
-      maxNetValue <- 100
+      minNetValue <- configfile$budget$Min
+      maxNetValue <- configfile$budget$Max
       createConstraint( strategy = strategy, type = "LimitHoldingConstraint", 
                         id = "Budget_Invest_All_Cash", scope = .Constraint.Scope.AGGREGATE, 
                         unit = .Unit.PERCENT, props = list( min = minNetValue, max = maxNetValue ),
@@ -383,8 +383,8 @@ backtest <- function(factor_name, INPUTPATH_alpha,INPUTPATH_bmk, INPUTPATH_unive
     }
 
     if(configfile$Limit_industry$use){
-      minSector <- -5
-      maxSector <-  5
+      minSector <- configfile$Limit_industry$Min
+      maxSector <-  configfile$Limit_industry$Max
       createConstraint( strategy = strategy, type = "LimitExposureConstraint",
                         id = "Limit_Industry", scope = .Constraint.Scope.SELECTION,
                         unit = .Unit.PERCENT, props = list( min = minSector, max = maxSector, 
@@ -393,8 +393,8 @@ backtest <- function(factor_name, INPUTPATH_alpha,INPUTPATH_bmk, INPUTPATH_unive
     }
 
     if(configfile$Limit_size$use){
-      minSector <- -0.5
-      maxSector <-  0.5
+      minSector <- configfile$Limit_size$Min
+      maxSector <-  configfile$Limit_size$Max
       sizeGroup = Workspace.getGroup(ws, id = paste( risk_model_name, model_size_name, sep = "." ), valueExtract = FALSE)
       createConstraint( strategy = strategy, type = "LimitExposureConstraint",
                         id = "Limit_Size", scope = .Constraint.Scope.AGGREGATE,
@@ -404,7 +404,7 @@ backtest <- function(factor_name, INPUTPATH_alpha,INPUTPATH_bmk, INPUTPATH_unive
     }
 
     if(configfile$TE_limit$use){
-      maxTotalRiskInPercent <- 5.0;
+      maxTotalRiskInPercent <- configfile$TE_limit$Max;
       createConstraint( strategy = strategy, type = "LimitTotalRiskConstraint", 
                         id = "Tracking_Error_Limit_Fundamental", scope = .Constraint.Scope.AGGREGATE, 
                         unit = .Unit.PERCENT, props = list( max = maxTotalRiskInPercent, 
@@ -415,7 +415,7 @@ backtest <- function(factor_name, INPUTPATH_alpha,INPUTPATH_bmk, INPUTPATH_unive
    
 
     if(configfile$stock_weight_limit$use){
-      maxValue <- 10
+      maxValue <- configfile$stock_weight_limit$Max
       createConstraint( strategy = strategy, type = "LimitAbsoluteExposureConstraint",
                         id = "Limit_Asset_Absolute_Exposure", scope = .Constraint.Scope.ASSET,
                         unit = .Unit.PERCENT, props = list( max = maxValue),
@@ -423,7 +423,7 @@ backtest <- function(factor_name, INPUTPATH_alpha,INPUTPATH_bmk, INPUTPATH_unive
     }
    
     if(configfile$Benchmark_holding$use){
-      minholding <- 80
+      minholding <- configfile$Benchmark_holding$Min
       createConstraint( strategy = strategy, type = "LimitHoldingConstraint",
                         id = "Limit_Benchmark_holding", scope = .Constraint.Scope.AGGREGATE,
                         unit = .Unit.PERCENT, props = list( min = minholding),
@@ -642,4 +642,7 @@ for (n in factor_list) {
   
 }
 
+
+file_name = "E:/QUANT/Axioma_backtest/"
+python.load(file_name) 
 

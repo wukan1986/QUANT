@@ -14,7 +14,7 @@ end_day: 20171001
 #stdfcf0,stdni0,pmom360 
 #factor_name:  stdfcf0,stdni0,stoa,stom,stoq,Liquidity
 #factor_name:  resvol,size,sizenl,liquqer,stoa,stoq,stom,Liquidity,pmom360,pmom640,pmom660,pmom940,pmom1220,stdfcf0,stdni0
-factor_name: pmom360
+factor_name: dilution,DROP,E12P,E12TP
 #
 lag: 4
 ### flag control risk model data.  
