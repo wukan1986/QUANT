@@ -12,6 +12,7 @@ import pandas as pd
 import numpy as np
 import os
 from time import strftime, localtime, time
+from sklearn import linear_model
 
 
 today = '20170929'  #strftime("%Y%m%d",localtime())
@@ -89,6 +90,27 @@ for fre in fre_shift_list:
 
 
 ######################
+def get_regression(df_total):
+    clf = linear_model.LinearRegression()
+    x = [[1],[2],[3],[4],[5]]
+    coef = []
+    r2 = []
+    for _, row in df_total.iterrows():
+        if len(row.dropna()) == 5:
+            y = row.values
+            model = clf.fit(x, y)
+            coef.append(model.coef_[0])
+            r2.append(model.score(x, y))
+        else:
+            coef.append(np.nan)
+            r2.append(np.nan)
+    df_regress = pd.DataFrame([])
+    df_regress['code'] = df_total.index.tolist()
+    df_regress['coef'] = coef
+    df_regress['r2'] = r2
+    return df_regress
+
+
 def updatestd(ii,factor_num,new_dirpath,new_factor_name,new_factor_path2,new_factor_name2):
     df_total = pd.DataFrame([],columns = ['code'])
     for num in factor_num:
@@ -99,6 +121,11 @@ def updatestd(ii,factor_num,new_dirpath,new_factor_name,new_factor_path2,new_fac
         df.columns = ['code','factor'+str(num)]
         df_total = pd.merge(df,df_total, on='code', how='outer')
     df_total.set_index('code',inplace = True)
+
+    if new_factor_name2 == 'stdfcf0':
+        df_regress = get_regression(df_total)
+        df_regress.to_csv('%s/r2/%s.csv'%(new_dirpath,ii), index=None)
+
     stdni = df_total.std(axis=1)
     stdni = pd.DataFrame(stdni)
     stdni.reset_index(inplace=True)
@@ -110,6 +137,9 @@ new_factor_path2 = new_dirpath + '/' + new_factor_name2
 
 if not os.path.exists(new_factor_path2):
     os.mkdir(new_factor_path2)
+
+if not os.path.exists('%s/r2'%new_dirpath):
+    os.mkdir('%s/r2'%new_dirpath)
 
 factor_num = range(0,5)
 
