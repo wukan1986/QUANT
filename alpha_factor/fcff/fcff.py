@@ -132,6 +132,7 @@ def updatestd(ii,factor_num,new_dirpath,new_factor_name,new_factor_path2,new_fac
     stdni.to_csv('%s/%s_%s.csv'%(new_factor_path2,new_factor_name2,ii),index=None,header=None)
 
 
+
 new_factor_name2 = 'stdfcf0'
 new_factor_path2 = new_dirpath + '/' + new_factor_name2
 
