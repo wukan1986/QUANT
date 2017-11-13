@@ -1,0 +1,84 @@
+INPUTPATH_bmk: Z:/axioma_data/benchmark/000300/
+INPUTPATH_alpha: Z:/axioma_data/alpha/
+INPUTPATH_universe: Z:/axioma_data/universe/
+INPUTPATH: Z:/RiskModel/
+LOCAL_RISKMODEL: Z:/axioma_data/risk_model/
+LOCAL_BARRAMODEL: Z:/axioma_data/barra_model/
+AxiomaDataDir: Z:/RiskModel/${yyyy}/${mm}/
+initialReferenceValue: 1.0e8
+
+OUTPUTPATH1: Z:/backtest_data/output_uqer_test/
+OUTPUTPATH2: Z:/backtest_data/output_barra/
+OUTPUTPATH0: Z:/backtest_data/output_axioma/
+
+start_day: 20080401
+end_day: 20170601
+#stdfcf0,stdni0,pmom360 
+#factor_name:  CACCRS,FCFCE,GPS,FCFS,DEFTAX_QoQ,DEFTAX_YoY,CAPEX,XO,EXFIN,IRSL,dilution
+#factor_name: RVOL4,SWRELSHR,SWRELVOL,PMOM360,PMOM640,PMOM660,PMOM940,PMOM1220,LIQUIDTY_barra,LIQUIDTY_uqer,SIZENL_uqer,SIZENL_barra,SIZE_uqer,SIZE_barra
+#factor_name: RESVOL_uqer,RESVOL_barra,STDNI0,STDFCF0,DDisp,EDisp,SALDisp
+#factor_name: E12P,E23P,D12P,SAL12P,SAL23P,E12TP,E23TP,TP2P,DROP,BTOP,EROP,CFTOP,EBITEV,EBITDAEV,GPEV,SALESEV,CEEV,CVMROE,CVMCFS,CVMTP,CVMGPS,DYPO
+#factor_name: ARSE,ARSSALE,ARSD,ARSME,UDREV,UDREVSAL,UDREVD,UDREVREC,UDREVTP,CRatio,CRatioSAL,CRatioD,CRatioTP,UDTOC,UDTOCSAL,UDTOCLastRev,ARTOC,ARTOCSAL,ARTOCLastRev,PARECLEV,PARECREV
+#factor_name:  CSDW,ABRW,SUEDW,SUE_FS,SUEW,SUED_FS,SURW,SUR_FS,SURDW,SURD_FS,PNCP,SUEPN_FS
+
+factor_name: PMOM360
+
+#factor_name: UDRES,PARECREV,PARECLEV,UDREV,UDREVSAL,UDREVD,UDREVREC,UDREVTP
+
+
+### flag control risk model data.  
+#1 :choose uqer risk model  2 : choose Barra model   other number: choose axioma model   
+flag: 2
+
+
+lag: 4
+
+dirpath1: Z:/backtest_data/output_uqer_test
+outputpath1: Z:/backtest_data/report_uqer_test
+
+dirpath2: Z:/backtest_data/output_barra
+outputpath2: Z:/backtest_data/report_barra
+
+dirpath0: Z:/backtest_data/output_axioma
+outputpath0: Z:/backtest_data/report_axioma
+
+market_path: Z:/backtest_data/close_data/gogo_data
+
+
+Benchmark: HS300
+strategy_name: test_strategy
+frequency: month 
+
+# Constraints
+budget:
+    use: True
+    Type: Limit Holding
+    Max: 100
+    Min: 100
+
+stock_weight_limit:
+    use: True 
+    Max: 10
+    Type: Limit AbsExposure
+
+TE_limit:
+    use: True
+    Max: 5
+    Type: Limit Risk
+    
+Limit_industry:
+    use: True
+    Max: 5
+    Min: -5
+    Type: Limit Exposure
+
+Limit_size:
+    use: False
+    Max: 0.5
+    Min: -0.5
+    Type: Limit Exposure
+
+Benchmark_holding:
+    use: False
+    Min: 80
+    Type: Limit Holding 
