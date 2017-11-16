@@ -15,7 +15,7 @@ import time as dt
 
 
 class factorGet(object):
-    def __init__(self, sql, cal_mode, flag, factor_filename, fre_shift=0, date=None, fre='month'):
+    def __init__(self, sql, cal_mode, flag, factor_filename, dirpath, fre_shift=0, date=None, fre='month'):
         # database information
         # self.DB_HOST = '10.180.10.139:1521/WINDB'
         # self.DB_USER = 'rwind'
@@ -31,7 +31,7 @@ class factorGet(object):
         self.cal_mode = cal_mode
         self.fre_shift = fre_shift  ##
 
-        self.dirpath = 'raw_data'  # 新建data文件夹 存各种因子数据
+        self.dirpath = dirpath  # 新建data文件夹 存各种因子数据
         self.factor_filename = factor_filename  # data文件夹里 具体因子的文件夹
 
         self.factor_path = self.dirpath + '/' + self.factor_filename + '_' + self.cal_mode + '_' + str(self.fre_shift)
