@@ -10,6 +10,7 @@ import numpy as np
 import os
 from time import strftime, localtime, time
 import sys
+from sklearn import linear_model
 
 sys.path.append("F:/QUANT/")
 reload(sys)
@@ -18,27 +19,27 @@ from factor_daily import factor_fundmental, factor_fundmental1
 
 
 class stdfcff(object):
-    def __init__(self, sql, sql2, factor_filename1, factor_filename2, today, raw_dirpath, new_dirpath, cal_model1,
-                 cal_model2, flag, fre, fre_shift_list,
-                 new_factor_name, new_factor_name2, new_factor_name3):
-        self.sql = sql
-        self.sql2 = sql2
-        self.factor_filename1 = factor_filename1
-        self.factor_filename2 = factor_filename2
+    def __init__(self, today, raw_dirpath, new_dirpath, flag, fre):
+        self.sql = "select WIND_CODE,ANN_DT,REPORT_PERIOD,s_fa_fcff from AShareFinancialIndicator"
+        self.sql2 = "select WIND_CODE,ANN_DT,REPORT_PERIOD,STATEMENT_TYPE,tot_assets from AShareBalanceSheet"
+        self.factor_filename1 = 'fcff'
+        self.factor_filename2 = 'tot_asset'
         self.today = today
 
         self.raw_dirpath = raw_dirpath
 
         self.new_dirpath = new_dirpath  # 处理好的因子存放位置
 
-        self.cal_model1 = cal_model1
-        self.cal_model2 = cal_model2
+        self.cal_model1 = 'ttm'
+        self.cal_model2 = 'year_ave'
         self.flag = flag  # 0 回测 1更新
         self.fre = fre
-        self.fre_shift_list = fre_shift_list
-        self.new_factor_name = new_factor_name
-        self.new_factor_name2 = new_factor_name2
-        self.new_factor_name3 = new_factor_name3
+        self.fre_shift_list = range(6)
+        self.new_factor_name = 'fcftar'
+        self.new_factor_name2 = 'stdfcf0'
+        self.new_factor_name3 = 'stdfcf1'
+
+
 
     def get_net_income(self):
         for fre_shift in self.fre_shift_list:
@@ -82,7 +83,7 @@ class stdfcff(object):
         df.to_csv('%s/%s_%s.csv' % (new_factor_path, self.new_factor_name, i), index=None, header=None)
 
     def get_fcftar(self):
-        self.trade_day = get_tradeDay.wind('20170701', self.today, fre=self.fre)
+        self.trade_day = get_tradeDay.wind('20080401', self.today, fre=self.fre)
         if not os.path.exists(self.raw_dirpath):
             os.mkdir(self.raw_dirpath)
 
@@ -101,6 +102,25 @@ class stdfcff(object):
                 self.update(self.today, file1, self.factor_filename1, self.cal_model1, file2, self.factor_filename2,
                             self.cal_model2, new_factor_path)
 
+    def get_regression(self,df_total):
+        clf = linear_model.LinearRegression()
+        x = [[1], [2], [3], [4], [5]]
+        coef = []
+        r2 = []
+        for _, row in df_total.iterrows():
+            if len(row.dropna()) == 5:
+                y = row.values
+                model = clf.fit(x, y)
+                coef.append(model.coef_[0])
+                r2.append(model.score(x, y))
+            else:
+                coef.append(np.nan)
+                r2.append(np.nan)
+        df_regress = pd.DataFrame([])
+        df_regress['code'] = df_total.index.tolist()
+        df_regress['coef'] = coef
+        df_regress['r2'] = r2
+        return df_regress
     ######################
     def updatestd(self, ii, factor_num, new_dirpath, new_factor_name, new_factor_path2, new_factor_name2):
         df_total = pd.DataFrame([], columns=['code'])
@@ -112,8 +132,17 @@ class stdfcff(object):
             df.columns = ['code', 'factor' + str(num)]
             df_total = pd.merge(df, df_total, on='code', how='outer')
         df_total.set_index('code', inplace=True)
-        stdni = df_total.std(axis=1)
 
+        if new_factor_name2 == 'stdfcf0':
+            df_regress = self.get_regression(df_total)
+
+            df_regress['sign_r2'] = np.sign(df_regress['coef']) * df_regress['r2']
+            df_regress = df_regress[['code','sign_r2']]
+            df_regress.columns = ['S_INFO_WINDCODE','FCFSR2_raw']
+            df_regress.to_csv('%s/FCFSR2/FCFSR2_raw_CN_%s.csv'%(self.new_dirpath, ii), index=None)
+
+
+        stdni = df_total.std(axis=1)
         stdni = stdni[stdni != 0]
         stdni = np.log(stdni)
         stdni = -stdni
@@ -129,6 +158,9 @@ class stdfcff(object):
 
         if not os.path.exists(new_factor_path2):
             os.mkdir(new_factor_path2)
+
+        if not os.path.exists(self.new_dirpath + '/' + 'FCFSR2'):
+            os.mkdir(self.new_dirpath + '/' + 'FCFSR2')
 
         # factor_num = range(0, 5)
 
@@ -149,27 +181,23 @@ class stdfcff(object):
 
 
 if __name__ == '__main__':
-    flag = 1  # 0 回测 1更新
+    # flag = 1  # 0 回测 1更新
+    # fre = 'day'
+    #
+    # today = strftime("%Y%m%d", localtime())  # '20170929'
+    # raw_dirpath = 'F:/QUANT/factor_daily/fcff/raw_data'
+    # new_dirpath = 'F:/factor_data/raw_data'
+    #
+    # srdfcf = stdfcff(today, raw_dirpath, new_dirpath, flag, fre)
+    # srdfcf.run()
+
+    flag = 0  # 0 回测 1更新
     fre = 'day'
-    fre_shift_list = range(6)
 
-    sql = "select WIND_CODE,ANN_DT,REPORT_PERIOD,s_fa_fcff from AShareFinancialIndicator"
-    factor_filename1 = 'fcff'
-    cal_model1 = 'ttm'
+    today = '20171204'  # '20170929'
+    raw_dirpath = 'F:/factor_data/test_temp'
+    new_dirpath = 'F:/factor_data/test_data'
 
-    sql2 = "select WIND_CODE,ANN_DT,REPORT_PERIOD,STATEMENT_TYPE,tot_assets from AShareBalanceSheet"
-    factor_filename2 = 'tot_asset'
-    cal_model2 = 'year_ave'
-
-    today = strftime("%Y%m%d", localtime())  # '20170929'
-    raw_dirpath = 'F:/QUANT/factor_daily/fcff/raw_data'
-    new_dirpath = 'F:/factor_data/raw_data'
-
-    new_factor_name = 'fcftar'
-    new_factor_name2 = 'stdfcf0'
-    new_factor_name3 = 'stdfcf1'
-
-    srdfcf = stdfcff(sql, sql2, factor_filename1, factor_filename2, today, raw_dirpath, new_dirpath, cal_model1,
-                     cal_model2, flag, fre, fre_shift_list,
-                     new_factor_name, new_factor_name2, new_factor_name3)
+    srdfcf = stdfcff(today, raw_dirpath, new_dirpath, flag, fre)
     srdfcf.run()
+

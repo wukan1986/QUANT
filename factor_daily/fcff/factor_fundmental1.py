@@ -247,7 +247,8 @@ class factorGet(object):
 
         ttm_list = []
         for i in range(len(code)):
-            print('%s  : %s/%s' % (today, i, len(code)))
+            # print('%s  : %s/%s' % (today, i, len(code)))
+            sys.stdout.write('\r%s  : %s/%s ' % (today, i, len(code)))
             df_tmp = df[df['WIND_CODE'] == code[i]]
             ###   groupby 效率十分低  程序的时间主要在这一步
             '''

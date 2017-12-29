@@ -5,147 +5,175 @@ Created on Thu Sep 21 09:34:52 2017
 @author: shiyunchao
 """
 
-
 import pandas as pd
 import numpy as np
 import os
 from time import strftime, localtime, time
 
+
 import sys
-sys.path.append("E:/QUANT/factor_daily/")
-import factor_fundmental
+sys.path.append("F:/QUANT/")
 reload(sys)
+from tools import get_tradeDay
+
+from factor_daily import factor_fundmental, factor_fundmental1
 
 
-today = strftime("%Y%m%d",localtime())
 
-###############################################################################
-sql = "select WIND_CODE,ANN_DT,REPORT_PERIOD,STATEMENT_TYPE,net_profit_excl_min_int_inc from ashareincome"
+class stdfcff(object):
+    def __init__(self, sql, sql2, factor_filename1, factor_filename2, today, raw_dirpath, new_dirpath, cal_model1,
+                 cal_model2, flag, fre, fre_shift_list,
+                 new_factor_name, new_factor_name2, new_factor_name3):
+        self.sql = sql
+        self.sql2 = sql2
+        self.factor_filename1 = factor_filename1
+        self.factor_filename2 = factor_filename2
+        self.today = today
 
-factor_filename1 = 'net_income'
+        self.raw_dirpath = raw_dirpath
 
-raw_dirpath = 'E:/QUANT/factor_daily/net_income/raw_data'
+        self.new_dirpath = new_dirpath  # 处理好的因子存放位置
 
-new_dirpath = 'E:/QUANT/factor_daily/net_income/data'   #  处理好的因子存放位置
+        self.cal_model1 = cal_model1
+        self.cal_model2 = cal_model2
+        self.flag = flag  # 0 回测 1更新
+        self.fre = fre
+        self.fre_shift_list = fre_shift_list
+        self.new_factor_name = new_factor_name
+        self.new_factor_name2 = new_factor_name2
+        self.new_factor_name3 = new_factor_name3
+
+    def get_net_income(self):
+        for fre_shift in self.fre_shift_list:
+            if self.new_factor_name2 == 'stdfcf0':
+                fcff = factor_fundmental1.factorGet(self.sql, self.cal_model1, self.flag, self.factor_filename1,
+                                                    self.raw_dirpath, fre_shift,
+                                                    date=self.today, fre=self.fre)
+                fcff.backtest_or_update()
+
+            elif self.new_factor_name2 == 'stdni0':
+                net_income = factor_fundmental.factorGet(self.sql, self.cal_model1, self.flag, self.factor_filename1,
+                                                         self.raw_dirpath, fre_shift,
+                                                         date=self.today, fre=self.fre)
+                net_income.backtest_or_update()
+
+    def get_tot_asset(self):
+        for fre_shift in self.fre_shift_list:
+            tot_asset = factor_fundmental.factorGet(self.sql2, self.cal_model2, self.flag, self.factor_filename2,
+                                                    self.raw_dirpath, fre_shift,
+                                                    date=self.today, fre=self.fre)
+            tot_asset.backtest_or_update()
+
+    def update(self, i, file1, factor_filename1, cal_model1, file2, factor_filename2, cal_model2, new_factor_path):
+        path1 = file1 + '/' + factor_filename1 + '_' + cal_model1 + '_' + i + '.csv'
+        path2 = file2 + '/' + factor_filename2 + '_' + cal_model2 + '_' + i + '.csv'
+
+        df1 = pd.read_csv(path1, header=None)
+        df2 = pd.read_csv(path2, header=None)
+        df1.columns = ['code', 'factor1']
+        df2.columns = ['code', 'factor2']
+
+        df = pd.merge(df1, df2, on='code', how='outer')
+        df = df.replace({'Na': np.nan, 'Ne': np.nan})
+        df['factor1'] = df['factor1'].astype('float64')
+        df['factor2'] = df['factor2'].astype('float64')
+        df['factor'] = df['factor1'] / df['factor2']
+        df = df[['code', 'factor']]
+
+        df['code'] = df['code'].apply(lambda x: x.split('.')[0] + '-CN')
+
+        df.to_csv('%s/%s_%s.csv' % (new_factor_path, self.new_factor_name, i), index=None, header=None)
+
+    def get_fcftar(self):
+        self.trade_day = get_tradeDay.wind('20170701', self.today, fre=self.fre)
+        if not os.path.exists(self.raw_dirpath):
+            os.mkdir(self.raw_dirpath)
+
+        for fre in self.fre_shift_list:
+            file1 = self.raw_dirpath + '/' + self.factor_filename1 + '_' + self.cal_model1 + '_' + str(fre)
+            file2 = self.raw_dirpath + '/' + self.factor_filename2 + '_' + self.cal_model2 + '_' + str(fre)
+
+            new_factor_path = self.raw_dirpath + '/' + self.new_factor_name + str(fre)
+            if not os.path.exists(new_factor_path):
+                os.mkdir(new_factor_path)
+            if self.flag == 0:
+                for i in self.trade_day:
+                    self.update(i, file1, self.factor_filename1, self.cal_model1, file2, self.factor_filename2,
+                                self.cal_model2, new_factor_path)
+            elif self.flag == 1:
+                self.update(self.today, file1, self.factor_filename1, self.cal_model1, file2, self.factor_filename2,
+                            self.cal_model2, new_factor_path)
+
+    ######################
+    def updatestd(self, ii, factor_num, new_dirpath, new_factor_name, new_factor_path2, new_factor_name2):
+        df_total = pd.DataFrame([], columns=['code'])
+        for num in factor_num:
+            new_factor_path = new_dirpath + '/' + new_factor_name + str(num)
+
+            path = new_factor_path + '/' + new_factor_name + '_' + str(ii) + '.csv'
+            df = pd.read_csv(path, header=None)
+            df.columns = ['code', 'factor' + str(num)]
+            df_total = pd.merge(df, df_total, on='code', how='outer')
+        df_total.set_index('code', inplace=True)
+        stdni = df_total.std(axis=1)
+
+        stdni = stdni[stdni != 0]
+        stdni = np.log(stdni)
+        stdni = -stdni
+
+        stdni = pd.DataFrame(stdni)
+        stdni.reset_index(inplace=True)
+        stdni.columns = ['S_INFO_WINDCODE', '%s_raw' % new_factor_name2.upper()]
+        # stdni.to_csv('%s/%s_%s.csv' % (new_factor_path2.upper(), new_factor_name2.upper(), ii), index=None, header=None)
+        stdni.to_csv('%s/%s_raw_CN_%s.csv' % (new_factor_path2.upper(), new_factor_name2.upper(), ii), index=None)
+
+    def get_stdfcf0(self, new_factor_name2, factor_num):
+        new_factor_path2 = self.new_dirpath + '/' + new_factor_name2
+
+        if not os.path.exists(new_factor_path2):
+            os.mkdir(new_factor_path2)
+
+        # factor_num = range(0, 5)
+
+        if self.flag == 0:
+            for ii in self.trade_day:
+                self.updatestd(ii, factor_num, self.raw_dirpath, self.new_factor_name, new_factor_path2,
+                               new_factor_name2)
+        elif self.flag == 1:
+            self.updatestd(self.today, factor_num, self.raw_dirpath, self.new_factor_name, new_factor_path2,
+                           new_factor_name2)
 
 
-cal_mode1, flag = 'ttm', 1  # 0 回测 1更新
-
-fre_shift_list = range(6)
-
-for fre_shift in fre_shift_list:
-    net_income = factor_fundmental.factorGet(sql, cal_mode1, flag, factor_filename1, raw_dirpath, fre_shift, date=today, fre='day')
-    asd1 = net_income.backtest_or_update()
-
-###############################################################################
-sql = "select WIND_CODE,ANN_DT,REPORT_PERIOD,STATEMENT_TYPE,tot_assets from AShareBalanceSheet"
-
-factor_filename2 = 'tot_asset'
-
-cal_mode2 = 'year_ave'  # 0 回测 1更新
-
-fre_shift = 1
-
-fre_shift_list = range(6)
-
-for fre_shift in fre_shift_list:
-    tot_asset = factor_fundmental.factorGet(sql, cal_mode2, flag, factor_filename2, raw_dirpath, fre_shift, date=today, fre='day')
-    asd2 = tot_asset.backtest_or_update()
-
-if not os.path.exists(new_dirpath):
-    os.mkdir(new_dirpath)
-
-new_factor_name = 'nitar'
-
-trade_day = net_income.trade_day
+    def run(self):
+        self.get_net_income()
+        self.get_tot_asset()
+        self.get_fcftar()
+        self.get_stdfcf0(self.new_factor_name2, range(0, 5))
+        self.get_stdfcf0(self.new_factor_name3, range(1, 6))
 
 
-# trade_day = ['20170126','20170228','20170331','20170428','20170531','20170630','20170731','20170831']
-################################################################################
-def update(i, file1, factor_filename1, cal_mode1, file2, factor_filename2, cal_mode2):
-    path1 = file1 + '/' + factor_filename1 + '_' + cal_mode1 + '_' + i + '.csv'
-    path2 = file2 + '/' + factor_filename2 + '_' + cal_mode2 + '_' + i + '.csv'
+if __name__ == '__main__':
+    flag = 1  # 0 回测 1更新
+    fre = 'day'
+    fre_shift_list = range(6)
 
-    df1 = pd.read_csv(path1, header=None)
-    df2 = pd.read_csv(path2, header=None)
-    df1.columns = ['code', 'factor1']
-    df2.columns = ['code', 'factor2']
+    sql = "select WIND_CODE,ANN_DT,REPORT_PERIOD,STATEMENT_TYPE,net_profit_excl_min_int_inc from ashareincome"
+    factor_filename1 = 'net_income'
+    cal_model1 = 'ttm'
 
-    df = pd.merge(df1, df2, on='code', how='outer')
-    df = df.replace({'Na': np.nan, 'Ne': np.nan})
-    df['factor1'] = df['factor1'].astype('float64')
-    df['factor2'] = df['factor2'].astype('float64')
-    df['factor'] = df['factor1'] / df['factor2']
-    df = df[['code', 'factor']]
+    sql2 = "select WIND_CODE,ANN_DT,REPORT_PERIOD,STATEMENT_TYPE,tot_assets from AShareBalanceSheet"
+    factor_filename2 = 'tot_asset'
+    cal_model2 = 'year_ave'
 
-    df['code'] = df['code'].apply(lambda x: x.split('.')[0] + '-CN')
+    today = strftime("%Y%m%d", localtime())  # '20170929'
+    raw_dirpath = 'F:/QUANT/factor_daily/net_income/raw_data'
+    new_dirpath = 'F:/factor_data/raw_data'
 
-    df.to_csv('%s/%s_%s.csv' % (new_factor_path, new_factor_name, i), index=None, header=None)
+    new_factor_name = 'nitar'
+    new_factor_name2 = 'stdni0'
+    new_factor_name3 = 'stdni1'
 
-
-for fre in fre_shift_list:
-    file1 = raw_dirpath + '/' + factor_filename1 + '_' + cal_mode1 + '_' + str(fre)
-    file2 = raw_dirpath + '/' + factor_filename2 + '_' + cal_mode2 + '_' + str(fre)
-
-    new_factor_path = new_dirpath + '/' + new_factor_name + str(fre)
-    if not os.path.exists(new_factor_path):
-        os.mkdir(new_factor_path)
-    if flag == 0:
-        for i in trade_day:
-            update(i, file1, factor_filename1, cal_mode1, file2, factor_filename2, cal_mode2)
-    elif flag == 1:
-        #        today = strftime("%Y%m%d",localtime())
-        update(today, file1, factor_filename1, cal_mode1, file2, factor_filename2, cal_mode2)
-
-
-###############################################################################
-def updatestd(ii, factor_num, new_dirpath, new_factor_name, new_factor_path2, new_factor_name2):
-    df_total = pd.DataFrame([], columns=['code'])
-    for num in factor_num:
-        new_factor_path = new_dirpath + '/' + new_factor_name + str(num)
-
-        path = new_factor_path + '/' + new_factor_name + '_' + str(ii) + '.csv'
-        df = pd.read_csv(path, header=None)
-        df.columns = ['code', 'factor' + str(num)]
-        df_total = pd.merge(df, df_total, on='code', how='outer')
-    df_total.set_index('code', inplace=True)
-    stdni = df_total.std(axis=1)
-
-    stdni = stdni[stdni != 0]
-    stdni = np.log(stdni)
-    stdni = -stdni
-
-    stdni = pd.DataFrame(stdni)
-    stdni.reset_index(inplace=True)
-    stdni.columns = ['S_INFO_WINDCODE', '%s_raw' % new_factor_name2.upper()]
-    stdni.to_csv('%s/%s_raw_CN_%s.csv' % (new_factor_path2.upper(), new_factor_name2.upper(), ii), index=None)
-
-new_factor_name2 = 'stdni0'
-new_factor_path2 = new_dirpath + '/' + new_factor_name2
-
-if not os.path.exists(new_factor_path2):
-    os.mkdir(new_factor_path2)
-
-factor_num = range(0, 5)
-
-if flag == 0:
-    for ii in trade_day:
-        updatestd(ii, factor_num, new_dirpath, new_factor_name, new_factor_path2, new_factor_name2)
-elif flag == 1:
-    updatestd(today, factor_num, new_dirpath, new_factor_name, new_factor_path2, new_factor_name2)
-
-## 000015 数据异常  2000年后就退市了 
-
-new_factor_name2 = 'stdni1'
-new_factor_path2 = new_dirpath + '/' + new_factor_name2
-
-if not os.path.exists(new_factor_path2):
-    os.mkdir(new_factor_path2)
-
-factor_num = range(1, 6)
-
-if flag == 0:
-    for ii in trade_day:
-        updatestd(ii, factor_num, new_dirpath, new_factor_name, new_factor_path2, new_factor_name2)
-elif flag == 1:
-    updatestd(today, factor_num, new_dirpath, new_factor_name, new_factor_path2, new_factor_name2)
+    srdfcf = stdfcff(sql, sql2, factor_filename1, factor_filename2, today, raw_dirpath, new_dirpath, cal_model1,
+                     cal_model2, flag, fre, fre_shift_list,
+                     new_factor_name, new_factor_name2, new_factor_name3)
+    srdfcf.run()

@@ -28,29 +28,7 @@ from xutils import (Date,
 
 cal = Calendar('China.SSE')
 
-sys.path.append("F:/QUANT/factor_daily/fcff/")
-reload(sys)
-import fcff2_der
 
-sys.path.append("F:/QUANT/factor_daily/net_income/")
-reload(sys)
-import net_income2_der
-
-sys.path.append("F:/QUANT/factor_daily/PMOM/")
-reload(sys)
-import PMOM
-
-sys.path.append("F:/QUANT/factor_daily/to_reverse/")
-reload(sys)
-import re_to_reverse
-
-sys.path.append("F:/QUANT/factor_daily/risk_factor/")
-reload(sys)
-import risk_factor
-
-sys.path.append("F:/QUANT/factor_daily/risk_factor/")
-reload(sys)
-import barra_factor_daily
 
 sys.path.append("F:/QUANT/factor_daily/riskmodel_benchmark/")
 reload(sys)
@@ -87,109 +65,6 @@ password = temp['ct_mail']['password']
 host = temp['ct_mail']['host']
 receiver = temp['ct_mail']['receiver']
 receiver = receiver.split(',')
-
-
-@record(logger123)
-@handle_exception(logger=LOGGER, subject="【stdfcf更新失败！！】", sender=username, username=username, password=password,
-                  host=host, receiver=receiver)
-def update_stdfcf(today):
-    print('update stdfcf')
-    flag = 1  # 0 回测 1更新
-    fre = 'day'
-    # today = strftime("%Y%m%d", localtime())  # '20170929'
-    raw_dirpath = 'F:/QUANT/factor_daily/fcff/raw_data'
-    new_dirpath = 'Z:/daily_data/alpha/raw'
-
-    srdfcf = fcff2_der.stdfcff(today, raw_dirpath, new_dirpath, flag, fre)
-    srdfcf.run()
-    print('Done')
-    return u"stdfcf更新成功 FCFSR2更新成功"
-
-
-@record(logger123)
-@handle_exception(logger=LOGGER, subject="【stdni更新失败！！】", sender=username, username=username, password=password,
-                  host=host, receiver=receiver)
-def update_stdni(today):
-    print('update stdni')
-    flag = 1  # 0 回测 1更新
-    fre = 'day'
-
-    # today = strftime("%Y%m%d", localtime())  # '20170929'
-    raw_dirpath = 'F:/QUANT/factor_daily/net_income/raw_data'
-    new_dirpath = 'Z:/daily_data/alpha/raw'
-
-    srdfcf = net_income2_der.stdfcff(today, raw_dirpath, new_dirpath, flag, fre)
-    srdfcf.run()
-    print('Done')
-    return u"stdni更新成功 NISR2更新成功"
-
-
-@record(logger123)
-@handle_exception(logger=LOGGER, subject="【pmom更新失败！！】", sender=username, username=username, password=password,
-                  host=host, receiver=receiver)
-def update_pmom(today):
-    print('update pmom')
-    output_path = 'Z:/daily_data/alpha/raw'
-    pm = PMOM.pmom(output_path)
-    vals = [(9, 185, 40), (6, 130, 40), (3, 65, 60), (6, 130, 60), (12, 240, 20)]
-    today1 = dt.datetime.strptime(today, '%Y%m%d').date()
-    print(today1)
-    for val in vals:
-        print(val)
-        pm.update(today1, val[0], val[1], val[2])
-    print('Done')
-    return u"pmom360 pmom640 pmom660 pmom940 pmom1220 更新成功"
-
-
-@record(logger123)
-@handle_exception(logger=LOGGER, subject="【to_reverse更新失败！！】", sender=username, username=username, password=password,
-                  host=host, receiver=receiver)
-def update_to_reverse(today):
-    print('update to_reverse')
-    start = '20171101'
-    factor_filename = 'TO_REVERSE'
-    flag = 1
-    fre = 'day'
-    day_range = 21
-    dirpath = 'Z:/daily_data/alpha/raw'
-    print(today)
-    turnover = re_to_reverse.factorGet(start, flag, fre, factor_filename, day_range, dirpath, date=today)
-    turnover.run()
-    print('Done')
-    return u"to_reverse 更新成功"
-
-
-@record(logger123)
-@handle_exception(logger=LOGGER, subject="【risk_factor更新失败！！】", sender=username, username=username, password=password,
-                  host=host, receiver=receiver)
-def update_risk_factor(today):
-    print('update risk_factor')
-    output_path = 'Z:/daily_data/alpha/raw'
-    start = '20170701'
-    end = today
-    flag = 1  # 0 回测 1更新
-    fre = 'day'
-    risk_factor.run(output_path, start, end, flag, fre)
-    print('Done')
-    return u"uqer风险因子SIZE SIZENL RESVOL LIQUIDITY更新成功"
-
-
-@record(logger123)
-@handle_exception(logger=LOGGER, subject="【barra_factor更新失败！！】", sender=username, username=username, password=password,
-                  host=host, receiver=receiver)
-def update_barra_factor(today):
-    print('update barra_factor')
-    dir_path = 'Z:/daily_data/barra_model/Exposure'
-    output_path = 'Z:/axioma_data/alpha'
-    output_path = 'Z:/daily_data/alpha/raw'
-
-    start = '20171201'
-    fre = 'day'
-    flag = 1  # 0 回测 1更新
-
-    barra_factor_daily.run(output_path, start, today, flag, fre, dir_path)
-    print('Done')
-    return u"Barra风险因子SIZE SIZENL RESVOL LIQUIDITY更新成功"
 
 
 ########################################################################################################
@@ -319,19 +194,18 @@ def job():
     today = today.strftime("%Y%m%d")
 
     update_barra_model()
-    update_barra_factor(today)
+
     update_risk_model()
     update_risk_tolocal()
-    update_risk_factor(today)
 
     update_esg100_weight()
     update_barra_model_backtest(today)
 
-    update_stdfcf(today)
-    update_stdni(today)
-    update_pmom(today)
-    update_to_reverse(today)
 
+    f = open('F:/logger_file/log%s.log' % strftime("%Y%m%d", localtime()), "r")
+    lines = f.readlines()
+    msg = ''.join(lines)
+    send('test', msg, receiver)
 
 
 def run_at_9():

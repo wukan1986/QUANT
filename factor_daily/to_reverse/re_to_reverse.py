@@ -5,11 +5,13 @@ Created on Thu Sep 28 09:36:06 2017
 @author: shiyunchao
 """
 
-import re_to
 import pandas as pd
 from time import strftime, localtime
 import numpy as np
 import os
+import sys
+sys.path.append("F:/QUANT/")
+reload(sys)
 from tools import get_tradeDay, client_db
 
 
@@ -18,7 +20,7 @@ def splist(L, s):
 
 
 class factorGet(object):
-    def __init__(self, start, flag, factor_filename, day_range, dirpath, date=None):
+    def __init__(self, start, flag, fre, factor_filename, day_range, dirpath, date=None):
         self.sql = "select s_info_windcode,trade_dt,s_dq_freeturnover from AShareEODDerivativeIndicator"
         self.flag = flag  # 0 回测 1更新
 
@@ -33,11 +35,12 @@ class factorGet(object):
             self.today = strftime("%Y%m%d", localtime())
         else:
             self.today = date
-        self.initial = '20170101'  # 留点窗口 为了下面start往前推能取到日期
+        self.initial = '20080101'  # 留点窗口 为了下面start往前推能取到日期
         self.start = start
+        self.fre = fre
 
         self.all_trade_day = get_tradeDay.wind(self.initial, self.today, fre='day')  ##用于定位一段交易日区间
-        self.trade_day = get_tradeDay.wind(self.start, self.today, fre='day')
+        self.trade_day = get_tradeDay.wind(self.start, self.today, fre=self.fre)
         #        self.trade_day = self.trade_day.iloc[:-1]
         self.getdb = client_db.read_db(type='ctquant2')
 
@@ -55,12 +58,12 @@ class factorGet(object):
     def get_timerange(self, today):
         end_index = pd.Index(self.all_trade_day).get_loc(today)
         start_index = end_index - self.day_range
-        s_trade_day = self.all_trade_day.iloc[start_index:end_index]
+        s_trade_day = self.all_trade_day.iloc[(start_index+1):(end_index+1)]
         return s_trade_day
 
     def get_current_factor(self, today):
         s_trade_day = self.get_timerange(today)
-        sql1 = self.sql + " where trade_dt >= %s and trade_dt < %s" % (s_trade_day.iloc[0], s_trade_day.iloc[-1])
+        sql1 = self.sql + " where trade_dt >= %s and trade_dt <= %s" % (s_trade_day.iloc[0], s_trade_day.iloc[-1])
         df = self.getdb.db_query(sql1)
         df = self.db_clean(df)
         col_name = df.columns.tolist()[0]
@@ -89,7 +92,6 @@ class factorGet(object):
 
         df = pd.DataFrame(columns=['code'])
         for day1 in last_day_list:
-            print(day1)
             df1 = self.get_current_factor(day1)
             df1.columns = ['code', day1]
             df = pd.merge(df, df1, on='code', how='outer')
@@ -128,22 +130,39 @@ class factorGet(object):
             #     self.part_trade_day = self.trade_day[1:-1]
             for today1 in self.trade_day:
                 #        today = '20110412'
-                ttm_df = self.get_current_factor(today1)
-                ttm_df.to_csv('%s/%s_raw_CN_%s.csv' % (self.factor_path, self.factor_filename, today1), index=None)
+                # ttm_df = self.get_current_factor(today1)
+                self.to3_to1(today1)
+                # ttm_df.to_csv('%s/%s_raw_CN_%s.csv' % (self.factor_path, self.factor_filename, today1), index=None)
         elif self.flag == 1:
-            ttm_df = self.get_current_factor(self.today)
-            ttm_df.to_csv('%s/%s_raw_CN_%s.csv' % (self.factor_path, self.factor_filename, self.today), index=None)
+            # ttm_df = self.get_current_factor(self.today)
+            self.to3_to1(self.today)
+            # ttm_df.to_csv('%s/%s_raw_CN_%s.csv' % (self.factor_path, self.factor_filename, self.today), index=None)
 
 
 if __name__ == "__main__":
-    start = '20171101'
+
+    # 每天更新
+    start = '20170701'
     factor_filename = 'TO_REVERSE'
     flag = 1
     day_range = 21
+    fre = 'day'
     dirpath = 'Z:/daily_data/alpha'
-    turnover = factorGet(start, flag, factor_filename, day_range, dirpath)
+    turnover = factorGet(start, flag, fre, factor_filename, day_range, dirpath, date='20171211')
     turnover.run()
+
+
     # turnover.backtest_or_update()
     # df = turnover.get_current_factor('20171130')
     # turnover.stox('20171130', 3, 'raw_data', 'test')
     # turnover.to3_to1('20171130')
+
+    # # 月频率回测
+    # start = '20150101'
+    # factor_filename = 'TO_REVERSE'
+    # flag = 0
+    # day_range = 21
+    # fre = 'month'
+    # dirpath = 'F:/factor_data/test_data'
+    # turnover = factorGet(start, flag, fre, factor_filename, day_range, dirpath, date='20171208')
+    # turnover.run()

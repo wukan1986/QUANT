@@ -29,7 +29,7 @@ class factorGet(object):
 
         #  4种模式 current最新的一个季度的值  latest yeartoday  ttm最近四季度之和  year_ave  四季度平均值 用于总资产这种数据计算过去12个月平均值
         self.cal_mode = cal_mode
-        self.fre_shift = fre_shift
+        self.fre_shift = fre_shift  ##
 
         self.dirpath = dirpath  # 新建data文件夹 存各种因子数据
         self.factor_filename = factor_filename  # data文件夹里 具体因子的文件夹
@@ -80,10 +80,14 @@ class factorGet(object):
         db.close()
         return data
 
-    def db_clean(self, data):
+    def db_clean1(self, data):
         reprot_type = ['408001000', '408004000', '408005000']
         data = data[data.STATEMENT_TYPE.isin(reprot_type)]
         data.sort_values(['WIND_CODE', 'REPORT_PERIOD', 'ANN_DT', 'STATEMENT_TYPE'], inplace=True)
+        return data
+
+    def db_clean(self, data):
+        data.sort_values(['WIND_CODE', 'REPORT_PERIOD', 'ANN_DT'], inplace=True)
         return data
 
     def cal_current_latest_ttm(self, df_tmp1, s_name):
@@ -209,7 +213,7 @@ class factorGet(object):
         #        else:
         #            ValueError("flag key error : Please input 0 or 1")
         start = str(int(today[:4]) - 3) + today[4:]
-        sql1 = self.sql + " where (ANN_DT >= %s) and (ANN_DT < %s)" % (start, end)
+        sql1 = self.sql + " where (ANN_DT >= %s) and (ANN_DT <= %s)" % (start, end)
         df = self.db_query(sql1)
         df = self.db_clean(df)
         return df
@@ -243,20 +247,18 @@ class factorGet(object):
         s_time = time()
 
         ttm_list = []
-        df = df.groupby(['WIND_CODE', 'REPORT_PERIOD']).apply(lambda x: x.iloc[-1])
-        df.index = df['REPORT_PERIOD'].values.tolist()
-
         for i in range(len(code)):
             # print('%s  : %s/%s' % (today, i, len(code)))
             sys.stdout.write('\r%s  : %s/%s ' % (today, i, len(code)))
-            df_tmp1 = df[df['WIND_CODE'] == code[i]]
-
+            df_tmp = df[df['WIND_CODE'] == code[i]]
             ###   groupby 效率十分低  程序的时间主要在这一步
             '''
             groupby 加速的方法 转成numpy  之后参考alpha-mind
             https://github.com/wegamekinglc/alpha-mind/blob/master/alphamind/data/standardize.py
             '''
-            # df_tmp1 = df_tmp.groupby(['REPORT_PERIOD']).apply(lambda x: x.iloc[-1])
+            #            df_tmp1 = df_tmp.groupby(['REPORT_PERIOD']).apply(lambda x: x.iloc[-1])
+            df_tmp1 = df_tmp.copy()
+            df_tmp1.index = df_tmp['REPORT_PERIOD'].values.tolist()
 
             indicator_ttm = self.cal_current_latest_ttm(df_tmp1, s_name)
             ####
@@ -267,7 +269,7 @@ class factorGet(object):
                 if np.isnan(indicator_ttm):
                     df_tmp1 = df_tmp1.iloc[:-1]
                     indicator_ttm = self.cal_current_latest_ttm(df_tmp1, s_name)
-                    # if isinstance(indicator_ttm, float) and np.isnan(indicator_ttm):
+                    # if np.isnan(indicator_ttm):
                     #     indicator_ttm = np.nan  # (not available)
             ttm_list.append(indicator_ttm)
 
@@ -287,17 +289,28 @@ class factorGet(object):
 
 
 if __name__ == "__main__":
-    sql = "select WIND_CODE,ANN_DT,REPORT_PERIOD,STATEMENT_TYPE,net_profit_incl_min_int_inc from ashareincome"
-    factor_filename = 'net_income'
+    #    sql = "select WIND_CODE,ANN_DT,REPORT_PERIOD,STATEMENT_TYPE,net_profit_incl_min_int_inc from ashareincome"
+    sql = "select WIND_CODE,ANN_DT,REPORT_PERIOD,s_fa_fcff from AShareFinancialIndicator"
+    # sql = "select WIND_CODE,ANN_DT,REPORT_PERIOD,STATEMENT_TYPE,FREE_CASH_FLOW from AShareCashFlow"
+
+    factor_filename = 'fcff'
 
     cal_mode, flag = 'ttm', 1
 
-    # sql = "select WIND_CODE,ANN_DT,REPORT_PERIOD,STATEMENT_TYPE,tot_assets from AShareBalanceSheet"
-    #
-    # factor_filename = 'tot_asset'
-    #
-    # cal_mode, flag = 'year_ave', 1  # 0 回测 1更新
-
-    net_income = factorGet(sql, cal_mode, flag, factor_filename,fre='day')
+    net_income = factorGet(sql, cal_mode, flag, factor_filename)
 
     asd1 = net_income.backtest_or_update()
+
+
+# 要做  文件夹保存
+#
+#
+#
+#
+#
+#
+#
+# all_day['CALENDAR_DATE'] = pd.to_datetime(all_day['CALENDAR_DATE'], format='%Y-%m-%d')
+# all_day = all_day.set_index('CALENDAR_DATE')
+# all_day['t'] = 1
+# all_day1 = all_day.resample('BM', how=lambda x: x.iloc[-1])

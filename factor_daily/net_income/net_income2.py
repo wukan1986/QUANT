@@ -9,36 +9,38 @@ import pandas as pd
 import numpy as np
 import os
 from time import strftime, localtime, time
-import sys
 
+
+import sys
 sys.path.append("F:/QUANT/")
 reload(sys)
 from tools import get_tradeDay
+
 from factor_daily import factor_fundmental, factor_fundmental1
 
 
+
 class stdfcff(object):
-    def __init__(self, sql, sql2, factor_filename1, factor_filename2, today, raw_dirpath, new_dirpath, cal_model1,
-                 cal_model2, flag, fre, fre_shift_list,
-                 new_factor_name, new_factor_name2, new_factor_name3):
-        self.sql = sql
-        self.sql2 = sql2
-        self.factor_filename1 = factor_filename1
-        self.factor_filename2 = factor_filename2
+    def __init__(self, today, raw_dirpath, new_dirpath, flag, fre):
+        self.sql = "select WIND_CODE,ANN_DT,REPORT_PERIOD,STATEMENT_TYPE,net_profit_excl_min_int_inc from ashareincome"
+        self.sql2 = "select WIND_CODE,ANN_DT,REPORT_PERIOD,STATEMENT_TYPE,tot_assets from AShareBalanceSheet"
+        self.factor_filename1 = 'net_income'
+        self.factor_filename2 = 'tot_asset'
         self.today = today
 
         self.raw_dirpath = raw_dirpath
 
         self.new_dirpath = new_dirpath  # 处理好的因子存放位置
 
-        self.cal_model1 = cal_model1
-        self.cal_model2 = cal_model2
+        self.cal_model1 = 'ttm'
+        self.cal_model2 = 'year_ave'
         self.flag = flag  # 0 回测 1更新
         self.fre = fre
-        self.fre_shift_list = fre_shift_list
-        self.new_factor_name = new_factor_name
-        self.new_factor_name2 = new_factor_name2
-        self.new_factor_name3 = new_factor_name3
+        self.fre_shift_list = range(6)
+        self.new_factor_name = 'nitar'
+        self.new_factor_name2 = 'stdni0'
+        self.new_factor_name3 = 'stdni1'
+
 
     def get_net_income(self):
         for fre_shift in self.fre_shift_list:
@@ -140,6 +142,7 @@ class stdfcff(object):
             self.updatestd(self.today, factor_num, self.raw_dirpath, self.new_factor_name, new_factor_path2,
                            new_factor_name2)
 
+
     def run(self):
         self.get_net_income()
         self.get_tot_asset()
@@ -151,25 +154,10 @@ class stdfcff(object):
 if __name__ == '__main__':
     flag = 1  # 0 回测 1更新
     fre = 'day'
-    fre_shift_list = range(6)
-
-    sql = "select WIND_CODE,ANN_DT,REPORT_PERIOD,s_fa_fcff from AShareFinancialIndicator"
-    factor_filename1 = 'fcff'
-    cal_model1 = 'ttm'
-
-    sql2 = "select WIND_CODE,ANN_DT,REPORT_PERIOD,STATEMENT_TYPE,tot_assets from AShareBalanceSheet"
-    factor_filename2 = 'tot_asset'
-    cal_model2 = 'year_ave'
 
     today = strftime("%Y%m%d", localtime())  # '20170929'
-    raw_dirpath = 'F:/QUANT/factor_daily/fcff/raw_data'
+    raw_dirpath = 'F:/QUANT/factor_daily/net_income/raw_data'
     new_dirpath = 'F:/factor_data/raw_data'
 
-    new_factor_name = 'fcftar'
-    new_factor_name2 = 'stdfcf0'
-    new_factor_name3 = 'stdfcf1'
-
-    srdfcf = stdfcff(sql, sql2, factor_filename1, factor_filename2, today, raw_dirpath, new_dirpath, cal_model1,
-                     cal_model2, flag, fre, fre_shift_list,
-                     new_factor_name, new_factor_name2, new_factor_name3)
+    srdfcf = stdfcff(today, raw_dirpath, new_dirpath, flag, fre)
     srdfcf.run()
