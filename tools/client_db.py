@@ -12,7 +12,7 @@ import os
 #os.environ['NLS_LANG'] = 'SIMPLIFIED CHINESE_CHINA.UTF8'
 
 class read_db():
-    def __init__(self, type = 'ctquant2'):
+    def __init__(self, type = 'wind'):
         if type == 'wind':
             self.DB_HOST = '10.180.10.139:1521/WINDB'
             self.DB_USER = 'rwind'

@@ -8,8 +8,8 @@ Created on Mon Oct 23 15:55:48 2017
 
 import cx_Oracle
 import pandas as pd
-import uqer
-from uqer import DataAPI
+# import uqer
+# from uqer import DataAPI
 
 
 def uqer1(start, end, fre = 'day'):
@@ -73,13 +73,34 @@ def wind(start, end, fre = 'day'):
         df = all_day['TRADE_DAYS']
     df.name = 'trade_day'   
     return df
+
+# def wind_fre_before(alpha_date, num, fre = 'day'):
+#     if fre == 'day':
+#         df = get_winddb(start, end)
+#     elif fre == 'month':
+#         all_day = get_winddb(start, end)
+#         all_day = pd.DataFrame(all_day.values,index= range(len(all_day)))
+#         all_day.columns = ['TRADE_DAYS']
+#         all_day['group'] = all_day['TRADE_DAYS'].apply(lambda x: x[:6])
+#
+#         all_day = all_day.groupby(['group']).apply(lambda x: x.iloc[-1])
+#         all_day = all_day[['TRADE_DAYS']]
+#         all_day.index = range(len(all_day))
+#         all_day = all_day.iloc[:-1]   # 截止到上月越底
+#         df = all_day['TRADE_DAYS']
+#     df.name = 'trade_day'
+#
+#     return df
+
         
 if __name__ =='__main__':      
     start = u'20121231'
     end = u'20170928'
     fre = 'day'
 
-    trade = uqer1(start, end, fre = fre)
-    trade1 = wind(start, end, fre = fre)       
-        
+    # trade = uqer1(start, end, fre = fre)
+    # trade1 = wind(start, end, fre = fre)
+    # print(trade1)
+
+    wind_fre_before(end, 1,fre='day')
         
