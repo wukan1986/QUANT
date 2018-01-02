@@ -245,13 +245,13 @@ class Barra_data():
 
     @handle_exception(logger=LOGGER) 
     def history_update(self):
-        if self.flag == 1:
+        if self.flag == 0:
             self.getAllRMExposure()
             self.getAllRMRMFactorRet()
             self.getAllRMSpecificRet()
             self.getAllRMCovarianceShort()
             self.getAllRMSriskShort()
-        elif self.flag == 0:
+        elif self.flag == 1:
             self.updateRMExposure()
             self.updateRMRMFactorRet()
             self.updateRMSpecificRet()
@@ -264,14 +264,14 @@ class Barra_data():
         
 if __name__ == "__main__":
     
-    start = '2017-10-20'
+    start = '2017-12-13'
     end = strftime("%Y-%m-%d",localtime()) 
     fre = 'day'   #
 #    dirpath = '../database'
-    dirpath = 'E:/uqer_riskmodel'
+    dirpath = 'F:/uqer_riskmodel'
     
     
-    firstRun_update = 0  ##  1代表第一次运行  0代表更新
+    firstRun_update = 0  ##  0代表第一次运行  1代表更新
     
     fre_type1 = 'short' # long
     test1 = Barra_data(start, end, dirpath, firstRun_update,fre, fre_type1)
