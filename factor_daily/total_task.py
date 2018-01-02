@@ -74,6 +74,10 @@ sys.path.append("F:/QUANT/factor_daily/ESG100_weight/")
 reload(sys)
 import esg100_weight
 
+sys.path.append("F:/QUANT/factor_daily/CSI_weight/")
+reload(sys)
+import csi_weight
+
 sys.path.append("F:/QUANT/factor_daily/Suspension/")
 reload(sys)
 import get_suspension
@@ -279,6 +283,28 @@ def update_esg100_weight():
     print('Done')
     return u"ESG100权重更新成功"
 
+@record(logger123)
+@handle_exception(logger=LOGGER, subject=u"【csi_weight更新失败！！】", sender=username, username=username, password=password,
+                  host=host, receiver=receiver)
+def update_csi_weight():
+    print('update csi_weight')
+    dir_path = 'G:/ESG100Enhanced/CSI/CSI300/weight_for_next_trading_day'
+    start = '20171201'
+    end = strftime("%Y%m%d", localtime())
+
+    firstRun_update = 1 ####  0代表第一次运行  1代表更新
+
+    fre = 'day'
+    beachmark_file = 'Z:/daily_data/benchmark'
+    index_code1 = u"000300"
+    csi_weight.run(firstRun_update, start, end, fre, index_code1, dir_path, beachmark_file)
+
+
+    dir_path = 'G:/ESG100Enhanced/CSI/CSI500/weight_for_next_trading_day'
+    index_code1 = u"000905"
+    csi_weight.run(firstRun_update, start, end, fre, index_code1, dir_path, beachmark_file)
+    print('Done')
+    return u"CSI300 CSI500权重更新成功"
 
 @record(logger123)
 @handle_exception(logger=LOGGER, subject=u"【barra_model_backtest更新失败！！】", sender=username, username=username,
@@ -459,6 +485,7 @@ def base_data():
     update_risk_tolocal()
 
     update_esg100_weight()
+    update_csi_weight()
     update_barra_model_backtest(today)
 
 def factor_multi():
@@ -526,7 +553,7 @@ def email_log():
 
 
 if __name__ == '__main__':
-    print sys.argv[1]
+    print(sys.argv[1])
     if sys.argv[1] == 'base_data':
         base_data()
     elif sys.argv[1] == 'factor_multi':

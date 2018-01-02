@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from uqer import DataAPI
 import os
 from tools import get_tradeDay
-from time import strftime, localtime, time
+from time import strftime, localtime
 import pandas as pd
 
 from xutils import (Date,

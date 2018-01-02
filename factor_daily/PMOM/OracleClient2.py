@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import cx_Oracle
 import numpy as np
 import pandas as pd
@@ -8,7 +9,7 @@ import datetime as dt
 import logging
 
 
-os.environ['NLS_LANG'] = 'SIMPLIFIED CHINESE_CHINA.UTF8'
+# os.environ['NLS_LANG'] = 'SIMPLIFIED CHINESE_CHINA.UTF8'
 
 class OracleClient:
 
