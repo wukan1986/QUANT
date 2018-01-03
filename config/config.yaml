@@ -1,0 +1,26 @@
+gogodb:
+  usr: gogousr
+  psd: gogousr123
+  ip: 10.180.10.179
+  port: 1521
+  db: gogodb
+
+windb:
+  usr: rwind
+  psd: rwind
+  ip: 10.180.10.139
+  port: 1521
+  db: windb
+
+quant2:
+  usr: ctquant2
+  psd: ctquant2
+  ip: 10.180.10.179
+  port: 1521
+  db: gogodb
+
+ct_mail:
+  username: shiyunchao@ctfund.com
+  password: ~123qwe
+  host: mail.ctfund.com
+  receiver: 369030612@qq.com
