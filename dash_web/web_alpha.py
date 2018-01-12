@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
@@ -5,6 +6,9 @@ import dash_table_experiments as dt
 import json
 import pandas as pd
 import datetime
+import sys
+sys.path.append("C:/Users/Administrator/Desktop/syc/QUANT/")
+reload(sys)
 from tools import get_tradeDay, client_db
 
 print(dcc.__version__)  # 0.6.0 or above is required
@@ -33,7 +37,7 @@ app.layout = html.Div([
 ])
 
 index_page = html.Div([
-    html.H1('Page Home'),
+    html.H1(u'量化投资二部-因子查询系统'),
     html.Br(),
     dcc.Link('Go to Home', href='/'),
     html.Br(),
@@ -212,7 +216,7 @@ page_2_layout = html.Div([
     dcc.Input(id='input-2-state', type='text', value='', placeholder='Enter end date'),
     dcc.Input(id='input-3-state', type='text', value='', placeholder='Enter stock code'),
     html.Button(id='submit-button', n_clicks=0, children='Submit'),
-    html.H4('Editable DataTable'),
+    html.H4('DataTable Alpha'),
     # dt.DataTable(
     #     rows=df2.to_dict('records'),
     #     # rows = generate_table(df2),
@@ -226,27 +230,27 @@ page_2_layout = html.Div([
 ])
 
 
-@app.callback(
-    dash.dependencies.Output('output', 'children'),
-    [dash.dependencies.Input('editable-table', 'rows')])
-def update_selected_row_indices(rows):
-    return json.dumps(rows, indent=2)
-
-
-@app.callback(
-    dash.dependencies.Output('graph', 'figure'),
-    [dash.dependencies.Input('editable-table', 'rows')])
-def update_figure(rows):
-    dff = pd.DataFrame(rows)
-    return {
-        'data': [{
-            'x': dff['x'],
-            'y': dff['y'],
-        }],
-        'layout': {
-            'margin': {'l': 10, 'r': 0, 't': 10, 'b': 20}
-        }
-    }
+# @app.callback(
+#     dash.dependencies.Output('output', 'children'),
+#     [dash.dependencies.Input('editable-table', 'rows')])
+# def update_selected_row_indices(rows):
+#     return json.dumps(rows, indent=2)
+#
+#
+# @app.callback(
+#     dash.dependencies.Output('graph', 'figure'),
+#     [dash.dependencies.Input('editable-table', 'rows')])
+# def update_figure(rows):
+#     dff = pd.DataFrame(rows)
+#     return {
+#         'data': [{
+#             'x': dff['x'],
+#             'y': dff['y'],
+#         }],
+#         'layout': {
+#             'margin': {'l': 10, 'r': 0, 't': 10, 'b': 20}
+#         }
+#     }
 
 
 # Update the index
@@ -269,4 +273,4 @@ app.css.append_css({
 })
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(host='10.180.10.92',port=8011,debug=True)
