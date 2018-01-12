@@ -6,6 +6,7 @@ import dash_table_experiments as dt
 import json
 import pandas as pd
 import datetime
+from time import strftime, localtime
 import sys
 sys.path.append("C:/Users/Administrator/Desktop/syc/QUANT/")
 reload(sys)
@@ -13,14 +14,8 @@ from tools import get_tradeDay, client_db
 
 print(dcc.__version__)  # 0.6.0 or above is required
 
+
 app = dash.Dash()
-
-DF_SIMPLE = pd.DataFrame({
-    'x': ['A', 'B', 'C', 'D', 'E', 'F'],
-    'y': [4, 3, 1, 2, 3, 6],
-    'z': ['a', 'b', 'c', 'a', 'b', 'c']
-})
-
 
 # Since we're adding callbacks to elements that don't exist in the app.layout,
 # Dash will raise an exception to warn us that we might be
@@ -43,9 +38,13 @@ index_page = html.Div([
     html.Br(),
     dcc.Link('Go to Page Summary', href='/page-1'),
     html.Br(),
-    dcc.Link('Go to Page Query', href='/page-2')
-])
+    dcc.Link('Go to Page Query', href='/page-2'),
+    html.Br(),
+    dcc.Link('Go to Page factorGroup', href='/factor'),
+    html.Br(),
+    dcc.Link('Go to Page report_assoc', href='/report_assoc')
 
+])
 
 
 def top_bottom(input1, input2, flag):
@@ -107,6 +106,9 @@ def top_bottom(input1, input2, flag):
      dash.dependencies.Input('xaxis-type', 'value')],
     [dash.dependencies.State('input-1-state2', 'value')])
 def generate_top(n_clicks, input1, input2):
+    if input2 == '':
+        today = strftime("%Y%m%d", localtime())
+        input2 = get_tradeDay.get_advance_day(today,1)
     dataframe = top_bottom(input1, input2, False)
 
     return html.Table(
@@ -125,6 +127,9 @@ def generate_top(n_clicks, input1, input2):
      dash.dependencies.Input('xaxis-type', 'value')],
     [dash.dependencies.State('input-1-state2', 'value')])
 def generate_bottom(n_clicks, input1, input2):
+    if input2 == '':
+        today = strftime("%Y%m%d", localtime())
+        input2 = get_tradeDay.get_advance_day(today,1)
     dataframe = top_bottom(input1, input2, True)
 
     return html.Table(
@@ -191,6 +196,11 @@ def data_select(input1, input2, input3):
      dash.dependencies.State('input-2-state', 'value'),
      dash.dependencies.State('input-3-state', 'value')])
 def generate_table(n_clicks, input1, input2,input3):
+    if input1 == '':
+        today = strftime("%Y%m%d", localtime())
+        input1 = get_tradeDay.get_advance_day(today,5)
+        input2 = get_tradeDay.get_advance_day(today,1)
+
     dataframe = data_select(input1, input2, input3)
 
     return html.Table(
@@ -229,28 +239,174 @@ page_2_layout = html.Div([
     # html.Table(id='datatable')
 ])
 
+###################################################################################################
+def data_factor(input1, input2, input3, input_factor, input_type):
+    # input1, input2 = '20180108', '20180110'
+    # input3 = '000001,000008'
+    # input_factor, input_type = 'Value', 'raw'
+    df_sig = pd.read_csv('sigConfig_ESG100.csv')
+    df_sig = df_sig[['Signal', 'Group']]
 
-# @app.callback(
-#     dash.dependencies.Output('output', 'children'),
-#     [dash.dependencies.Input('editable-table', 'rows')])
-# def update_selected_row_indices(rows):
-#     return json.dumps(rows, indent=2)
-#
-#
-# @app.callback(
-#     dash.dependencies.Output('graph', 'figure'),
-#     [dash.dependencies.Input('editable-table', 'rows')])
-# def update_figure(rows):
-#     dff = pd.DataFrame(rows)
-#     return {
-#         'data': [{
-#             'x': dff['x'],
-#             'y': dff['y'],
-#         }],
-#         'layout': {
-#             'margin': {'l': 10, 'r': 0, 't': 10, 'b': 20}
-#         }
-#     }
+    trade_day = get_tradeDay.wind(input1, input2, fre='day')
+    df_alpha = pd.DataFrame([])
+    for i in trade_day:
+
+        singal_list = df_sig.Signal[df_sig.Group == input_factor].values.tolist()
+        df_singal = pd.DataFrame([], columns=['S_INFO_WINDCODE'])
+        for ii in singal_list:
+            try:
+                temp = pd.read_csv('Z:/daily_data/alpha/%s/%s/%s_%s_CN_%s.csv' % (input_type, ii, ii, input_type, i))
+                df_singal = pd.merge(df_singal, temp, how='outer', on='S_INFO_WINDCODE')
+            except:
+                pass
+        df_singal['Date'] = i
+        df_alpha = pd.concat([df_alpha, df_singal])
+
+    col = df_alpha.columns.tolist()
+    col.remove('S_INFO_WINDCODE')
+    col.remove('Date')
+
+    df_alpha = df_alpha[['S_INFO_WINDCODE', 'Date'] + col]
+    df_alpha = df_alpha.sort_values(by=['S_INFO_WINDCODE', 'Date'])
+    df_alpha = df_alpha.round(3)
+    if input_type == 'raw':
+        df_alpha['S_INFO_WINDCODE'] = df_alpha['S_INFO_WINDCODE'].apply(lambda x: x.split('.')[0] + '-CN')
+    code_list = input3.split(',')
+    code_list = list(map(lambda x: str(x) + '-CN', code_list))
+    if code_list[0] != 'ALL':
+        df_alpha = df_alpha[df_alpha.S_INFO_WINDCODE.isin(code_list)]
+    return df_alpha
+
+
+@app.callback(
+    dash.dependencies.Output('factortable', 'children'),
+    [dash.dependencies.Input('submit-button', 'n_clicks'),
+     dash.dependencies.Input('xaxis-factor', 'value'),
+     dash.dependencies.Input('xaxis-factor-type', 'value')],
+    [dash.dependencies.State('input-11-state', 'value'),
+     dash.dependencies.State('input-22-state', 'value'),
+     dash.dependencies.State('input-33-state', 'value')])
+def generate_factor(n_clicks, input_factor, input_type, input1, input2,input3):
+    if input1 == '':
+        today = strftime("%Y%m%d", localtime())
+        input1 = get_tradeDay.get_advance_day(today,5)
+        input2 = get_tradeDay.get_advance_day(today,1)
+
+    dataframe = data_factor(input1, input2, input3, input_factor, input_type)
+
+    return html.Table(
+        # Header
+        [html.Tr([html.Th(col) for col in dataframe.columns])] +
+
+        # Body
+        [html.Tr([
+            html.Td(dataframe.iloc[i][col]) for col in dataframe.columns
+        ]) for i in range(len(dataframe))]
+    )
+
+    # return html.Iframe(srcDoc=dataframe.to_html())
+
+page_factor_layout = html.Div([
+    html.H1('Query Alpha-Group'),
+    html.Br(),
+    dcc.Link('Go back to home', href='/'),
+    html.Br(),
+    dcc.Input(id='input-11-state', type='text', value='', placeholder='Enter start date'),
+    dcc.Input(id='input-22-state', type='text', value='', placeholder='Enter end date'),
+    dcc.Input(id='input-33-state', type='text', value='', placeholder='Enter stock code'),
+    html.Button(id='submit-button', n_clicks=0, children='Submit'),
+    html.Br(),
+    dcc.RadioItems(
+                id='xaxis-factor',
+                options=[{'label': i, 'value': i} for i in ['Value', 'Quality','Revision','Fndsurp','IU','Mktmmt','Insider']],
+                value='Value',
+                labelStyle={'display': 'inline-block'}
+            ),
+    html.Br(),
+    dcc.RadioItems(
+                id='xaxis-factor-type',
+                options=[{'label': i, 'value': i} for i in ['raw', 'neut']],
+                value='neut',
+                labelStyle={'display': 'inline-block'}
+            ),
+    html.H4('DataTable Singal'),
+    # dt.DataTable(
+    #     rows=df2.to_dict('records'),
+    #     # rows = generate_table(df2),
+    #     # # optional - sets the order of columns
+    #     columns=dataframe.columns,
+    #
+    #     id='datatable'
+    # )
+    html.Table(id='factortable')
+    # html.Table(id='datatable')
+])
+
+################################################################################################
+def data_research(input1, input2):
+
+    # input1, input2 = '20180108', '20180111'
+    sql = "select * from CMB_REPORT_RESEARCH_ASSOC where INTO_DATE >= to_date(%s, 'yyyymmdd') and INTO_DATE <= to_date(%s, 'yyyymmdd')" % (
+    input1, input2)
+    get_db = client_db.read_db(type='ctquant2')
+    df_report = get_db.db_query(sql)
+    df_report['CODE_NAME'] = df_report['CODE_NAME'].apply(lambda x: x.decode('gbk'))
+    df_report['AUTHOR'] = df_report['AUTHOR'].apply(lambda x: x.decode('gbk'))
+    df_report['ATTENTION_NAME'] = df_report['ATTENTION_NAME'].apply(lambda x: x.decode('gbk'))
+    return df_report
+
+
+@app.callback(
+    dash.dependencies.Output('research-table', 'children'),
+    [dash.dependencies.Input('research-button', 'n_clicks')],
+    [dash.dependencies.State('research-1-state', 'value'),
+     dash.dependencies.State('research-2-state', 'value'),
+     dash.dependencies.State('research-3-state', 'value')])
+def generate_table(n_clicks, input1, input2,input3):
+    if input1 == '':
+        today = strftime("%Y%m%d", localtime())
+        # input1 = get_tradeDay.get_advance_day(today,5)
+        # input2 = get_tradeDay.get_advance_day(today,1)
+        input1 = get_tradeDay.get_advance_day(today, 1)
+        input2 = today
+
+    dataframe = data_research(input1, input2)
+
+    return html.Table(
+        # Header
+        [html.Tr([html.Th(col) for col in dataframe.columns])] +
+
+        # Body
+        [html.Tr([
+            html.Td(dataframe.iloc[i][col]) for col in dataframe.columns
+        ]) for i in range(len(dataframe))]
+    )
+
+    # return html.Iframe(srcDoc=dataframe.to_html())
+
+#####################################
+page_research_layout = html.Div([
+    html.H1('Query Research Report Assoc'),
+    html.Br(),
+    dcc.Link('Go back to home', href='/'),
+    html.Br(),
+    dcc.Input(id='research-1-state', type='text', value='', placeholder='Enter start date'),
+    dcc.Input(id='research-2-state', type='text', value='', placeholder='Enter end date'),
+    dcc.Input(id='research-3-state', type='text', value='', placeholder='Enter stock code'),
+    html.Button(id='research-button', n_clicks=0, children='Submit'),
+    html.H4('DataTable Research Report'),
+    # dt.DataTable(
+    #     rows=df2.to_dict('records'),
+    #     # rows = generate_table(df2),
+    #     # # optional - sets the order of columns
+    #     columns=dataframe.columns,
+    #
+    #     id='datatable'
+    # )
+    html.Table(id='research-table')
+    # html.Table(id='datatable')
+])
+
 
 
 # Update the index
@@ -261,10 +417,13 @@ def display_page(pathname):
         return page_1_layout
     elif pathname == '/page-2':
         return page_2_layout
+    elif pathname == '/factor':
+        return page_factor_layout
+    elif pathname == '/report_assoc':
+        return page_research_layout
     else:
         return index_page
         # You could also return a 404 "URL not found" page here
-
 
 
 
@@ -273,4 +432,4 @@ app.css.append_css({
 })
 
 if __name__ == '__main__':
-    app.run_server(host='10.180.10.92',port=8011,debug=True)
+    app.run_server(debug=True)
