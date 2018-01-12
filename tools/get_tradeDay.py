@@ -8,6 +8,7 @@ Created on Mon Oct 23 15:55:48 2017
 
 import cx_Oracle
 import pandas as pd
+import datetime
 # import uqer
 # from uqer import DataAPI
 
@@ -91,8 +92,27 @@ def wind(start, end, fre = 'day'):
 #     df.name = 'trade_day'
 #
 #     return df
+def get_advance_range(date, shiftN):
+    day = datetime.datetime.strptime(date, '%Y%m%d')
+    pre_day = day - datetime.timedelta(days=shiftN + 30)
+    day = day.strftime('%Y%m%d')
+    pre_day = pre_day.strftime('%Y%m%d')
 
-        
+    tradeday = wind(pre_day, date, fre = 'day')
+    day_range = tradeday.iloc[-shiftN-1:]
+    day_range.index = range(len(day_range))
+    return day_range
+
+def get_advance_day(date, shiftN):
+    day = datetime.datetime.strptime(date, '%Y%m%d')
+    pre_day = day - datetime.timedelta(days=shiftN + 30)
+    day = day.strftime('%Y%m%d')
+    pre_day = pre_day.strftime('%Y%m%d')
+
+    tradeday = wind(pre_day, date, fre = 'day')
+    day_range = tradeday.iloc[-shiftN-1:]
+    return day_range.iloc[0]
+
 if __name__ =='__main__':      
     start = u'20121231'
     end = u'20170928'
@@ -102,5 +122,6 @@ if __name__ =='__main__':
     # trade1 = wind(start, end, fre = fre)
     # print(trade1)
 
-    wind_fre_before(end, 1,fre='day')
+    # wind_fre_before(end, 1,fre='day')
+    print(get_advance_day('20180110',1))
         
